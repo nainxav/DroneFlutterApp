@@ -2,36 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  final String baseUrl = 'http://192.168.1.222:5000';
+  // final String baseUrl = 'http://10.0.2.2:5000';
+  final String baseUrl;
 
-  /// Generic method to handle POST requests
-  Future<void> sendCommand(String command) async {
-    try {
-      var response = await http.post(
-        Uri.parse('$baseUrl/command'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{'command': command}),
-      );
-
-      if (response.statusCode == 200) {
-        print('Command "$command" sent successfully.');
-      } else {
-        print(
-          'Failed to send command "$command", Status code: ${response.statusCode}, Body: ${response.body}',
-        );
-      }
-    } catch (e) {
-      print('Error occurred while sending command "$command": $e');
-    }
-  }
-
-  // /// Simplified POST requests using the generic method
-  // Future<void> postArm() => sendCommand('arm');
-  // Future<void> postDisarm() => sendCommand('disarm');
-  // Future<void> postTestMotor1() => sendCommand('testmotor,1,10');
-  // Future<void> postTestMotor2() => sendCommand('testmotor,2,10');
+  ApiService({required this.baseUrl});
 
   Future<void> postRequest() async {
     var response = await http.post(
@@ -101,21 +75,18 @@ class ApiService {
     }
   }
 
-  /// GET request to fetch recent data and parse it into a Map
   Future<Map<String, dynamic>> getRequest() async {
+    final url = Uri.parse('$baseUrl/follow');
+
     try {
-      var response = await http.get(Uri.parse('$baseUrl/recent'));
+      final response = await http.get(url);
       if (response.statusCode == 200) {
-        // Decode and return the JSON as a Map<String, dynamic>
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        return {'data': json.decode(response.body)};
       } else {
-        throw Exception(
-          'Failed to fetch data, Status code: ${response.statusCode}, Body: ${response.body}',
-        );
+        return {'error': 'Server responded with status ${response.statusCode}'};
       }
     } catch (e) {
-      // Return an error map to the caller for error handling
-      return {'error': 'Error occurred: $e'};
+      return {'error': 'Failed to connect: $e'};
     }
   }
 }

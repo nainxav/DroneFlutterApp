@@ -38,19 +38,82 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   Map<String, dynamic> responseData = {};
   int _selectedIndex = 0;
-  final ApiService apiService = ApiService();
+  // final ApiService apiService = ApiService();
+  ApiService? apiService;
+  final TextEditingController _baseUrlController = TextEditingController();
   String responseText = 'No data received yet';
+
+  @override
+  void initState() {
+    super.initState();
+    _promptForBaseUrl();
+  }
+
+  void _promptForBaseUrl() async {
+    await Future.delayed(Duration.zero);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: Text('Enter Base URL'),
+        content: TextField(
+          controller: _baseUrlController,
+          decoration:
+              InputDecoration(hintText: 'e.g. http://192.168.0.101:5000'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              final inputUrl = _baseUrlController.text.trim();
+
+              // Check if the input URL is empty or invalid
+              if (inputUrl.isEmpty) {
+                setState(() {
+                  responseText = 'Base URL cannot be empty';
+                });
+                return;
+              }
+
+              setState(() {
+                // Initialize the ApiService with the provided base URL
+                apiService = ApiService(baseUrl: inputUrl);
+                responseText = 'Base URL set successfully';
+              });
+              Navigator.of(context).pop();
+            },
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
 
   // Fetch the data from API and update the response data
   void _getData() async {
-    final data = await apiService.getRequest();
+    // final data = await apiService.getRequest();
+
+    // setState(() {
+    //   if (data.containsKey('error')) {
+    //     responseText = data['error']; // Display error message if any
+    //   } else {
+    //     responseData =
+    //         data['data'] ?? {}; // Access the data field and update responseData
+    //     responseText = 'Data received successfully';
+    //   }
+    // });
+    if (apiService == null) {
+      setState(() => responseText = 'Base URL not set');
+      return;
+    }
+
+    final result = await apiService!.getRequest();
 
     setState(() {
-      if (data.containsKey('error')) {
-        responseText = data['error']; // Display error message if any
+      if (result.containsKey('error')) {
+        responseText = result['error'];
       } else {
-        responseData =
-            data['data'] ?? {}; // Access the data field and update responseData
+        final data = result['data'];
+        responseData = data['target'] ?? {};
         responseText = 'Data received successfully';
       }
     });
