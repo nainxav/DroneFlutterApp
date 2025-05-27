@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:plisss/api_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(
@@ -119,6 +120,53 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  Future<Position> _getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('Location permissions are permanently denied.');
+    }
+
+    return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+  }
+
+  void _postLocation() async {
+    if (apiService == null) {
+      setState(() => responseText = 'Base URL not set');
+      return;
+    }
+
+    try {
+      Position position = await _getCurrentLocation();
+
+      await apiService!.postLocation(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+
+      setState(() {
+        responseText =
+            'Location sent: (${position.latitude}, ${position.longitude})';
+      });
+    } catch (e) {
+      setState(() {
+        responseText = 'Error sending location: $e';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -192,8 +240,8 @@ class _MyHomePageState extends State<MyHomePage> {
                             'Sat Count', CupertinoIcons.globe, Colors.black,
                             value: responseData['satcount']?.toString()),
                         ElevatedButton(
-                          onPressed: _getData,
-                          child: Text('GET'),
+                          onPressed: _postLocation,
+                          child: Text('POST LOCATION'),
                         ),
                         SizedBox(height: 60),
                         Text(

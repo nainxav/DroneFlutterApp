@@ -75,6 +75,26 @@ class ApiService {
     }
   }
 
+  Future<void> postLocation(
+      {required double latitude, required double longitude}) async {
+    var response = await http.post(
+      Uri.parse('$baseUrl/location'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, dynamic>{
+        'latitude': latitude,
+        'longitude': longitude,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print('Location posted successfully');
+    } else {
+      print('Failed to post location');
+    }
+  }
+
   Future<Map<String, dynamic>> getRequest() async {
     final url = Uri.parse('$baseUrl/follow');
 
